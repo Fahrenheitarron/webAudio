@@ -100,6 +100,12 @@ div#response-holder{
 	margin: 10px auto;
 }
 
+div#formants{
+	text-align: center;
+	font-family: "微软雅黑";
+	font-size: 20px;
+}
+
 @media screen and (max-width: 520px) {
 	div#response-holder {
 		width: 100%;

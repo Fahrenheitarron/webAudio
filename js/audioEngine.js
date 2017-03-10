@@ -20,7 +20,6 @@ window.onload = function () {
     barkBands = xtract_init_bark(analysis.fftSize, audioContext.sampleRate);//采样率
 
     // Get the microphone
-
     document.getElementById("microphone").onclick = function (event) {
     	event.currentTarget.style.background="url(img/Pause-microphone.png) no-repeat 0 7px";
         var text = event.currentTarget.textContent;
@@ -31,7 +30,7 @@ window.onload = function () {
             return captureMicrophone(event.currentTarget);
         }
         if (text == "Stop") {
-            microphoneCapture.disconnect();
+              microphoneCapture.disconnect();
             event.currentTarget.textContent = "Listen";
             event.currentTarget.style.background="url(img/Listen.png) no-repeat 2px 7px";
             return;
@@ -77,6 +76,8 @@ window.onload = function () {
     }
 
     canvasObject = new canvasDraw(analysis);
+    document.getElementById("formants").innerText+=LPCFormantEstimation(7418);
+    
 }
 
 function captureMicrophone(element) {//start的按钮事件
@@ -309,3 +310,69 @@ var canvasDraw = function (analysisNode) {
     this.analysisNode.frameCallback(this.callback, this);
     this.analysisNode.callbackObject.connect(nullgain);
 }
+
+//Fs:传入频率
+function LPCFormantEstimation(Fs){
+	var x=[0.422947892942498,0.469493936422016,0.573785894130969,0.635811581011049,0.460267821044956
+,0.209077609910338,-0.0136800574145255,-0.250350661799950,-0.441388392449557,-0.630889332050399];
+	/*var dt=1/Fs;
+	var I0=Math.round(0.1/dt);
+	var Iend=Math.round(0.25/dt);
+	var x=new Array();
+	for (var i=I0;i<=Iend;i++) {
+		x[i]=speech[i];
+	}*/
+	var x1=[],angz;
+	for (var i=0;i<x.length;i++) {
+		x1[i]=x[i]*hamming(x.length)[i];
+	}
+	var preemph=[1,0.63];
+	var x2=mFilter(1,preemph,x1); //filter
+	var x3=[];
+	x3=createZeros(x2);  //构造一个虚部全为0，长度和实部相同的数组
+   	var n=x2.length;
+   	var a=mLpc(x2,x3,n);
+   	var real=[],imag=[];
+   	roots(a,real,imag);//复数的格式处理
+   	var rts=[],its=[];
+   	var j=0;
+   	for (var i=0;i<imag.length;i++) {
+   		if (imag[i]>=0) {
+   			its[j]=imag[i];
+   			rts[j]=real[i];
+   			j++;
+   		}
+   	}                       //rts(imag(rts1)>=0);
+   	var angz=[];
+	for (var i=0;i<its.length;i++) {
+		angz[i]=Math.atan2(its[i],rts[i]);
+	}
+	var frqs=[];
+	for (var i=0;i<angz.length;i++) {
+		frqs[i]=angz[i]*(Fs/(2*Math.PI));
+	}
+	
+	var indices=sortArray(frqs);
+	frqs.sort(sortNumber);
+	var bw=[];
+	var rrts=[];
+	var irts=[];
+	for (var i=0;i<rts.length;i++) {
+		rrts[i]=rts[indices[i]-1];
+		irts[i]=its[indices[i]-1];
+	}
+	var bw=[];
+	for (var i=0;i<rrts.length;i++) {
+		bw[i]=-1/2*(Fs/(2*Math.PI))*Math.log(abs(rrts[i],irts[i]));
+	}
+	var nn=0;
+	var formants=[];
+	for (var i=0;i<frqs.length;i++) {
+		if (frqs[i]>90 && bw[i]<400) {
+			formants[nn]=frqs[i].toFixed(2);
+			nn++;
+		}
+	}
+	return formants;
+}
+
